@@ -1,0 +1,5 @@
+load(":content_group_test.bzl", "content_group_test_suite")
+
+content_group_test_suite(
+    name = "content_group_test",
+)
