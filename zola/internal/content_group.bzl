@@ -6,35 +6,35 @@ ZolaFileMapInfo = provider(
     "Mapping of a single file from Bazel->Zola tree.",
     fields = {
         "file": "Bazel file.",
-        "zola_path": "The path in the Zola tree.",
+        "zola_prefix": "The path in the Zola tree.",
     },
 )
 
-def map_zola_file(file, zola_path):
+def map_zola_file(file, zola_prefix):
     """ Constructs a Zola mapping from Bazel->Zola tree 
 
     Args:
         file: The Bazel file to map.
-        zola_path: The path in the Zola tree.
+        zola_prefix: The path in the Zola tree.
 
     Returns:
         A ZolaFileMapInfo provider.
     """
-    if type(zola_path) != type(""):
+    if type(zola_prefix) != type(""):
         fail("Zola path should be of type 'str'.")
-    valid_zola_directories = [
+    valid_prefixectories = [
         "content",
         "sass",
         "static",
         "templates",
         "themes",
     ]
-    if zola_path.split("/")[0] not in valid_zola_directories:
+    if zola_prefix.split("/")[0] not in valid_prefixectories:
         fail("Zola path should start with oneof, %s. Got path: %s" %
-             (", ".join(valid_zola_directories), zola_path))
+             (", ".join(valid_prefixectories), zola_prefix))
     return ZolaFileMapInfo(
         file = file,
-        zola_path = zola_path,
+        zola_prefix = zola_prefix,
     )
 
 ZolaContentGroupInfo = provider(
@@ -72,8 +72,8 @@ def _zola_content_group_impl(ctx):
     for file in ctx.files.srcs:
         file_mapping.append(map_zola_file(
             file = file,
-            zola_path = paths.join(
-                ctx.attr.zola_dir,
+            zola_prefix = paths.join(
+                ctx.attr.prefix,
                 _strip_prefix(file, ctx.attr.strip_prefix),
             ),
         ))
@@ -97,7 +97,7 @@ from the workspace root add '//' to the start of the path to strip otherwise\
 it is assumed that the strip should be relative to the current directory e.g. \
 strip_prefix = '.', will just place the file directly in the Zola directory.",
         ),
-        "zola_dir": attr.string(
+        "prefix": attr.string(
             doc = "The prefix to add to this content group when in the Zola tree.",
         ),
         "srcs": attr.label_list(
