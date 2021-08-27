@@ -1,0 +1,4 @@
+cc_binary(
+    name = "touch",
+    srcs = ["touch.cc"],
+)
