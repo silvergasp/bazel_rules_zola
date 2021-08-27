@@ -29,4 +29,5 @@ alias(
         ":x86_linux": "@zola-v0-14-1-x86-64-unknown-linux-gnu//:zola",
         ":x86_macos": "@zola-v0-14-1-x86_64-apple-darwin//:zola",
     }),
+    visibility = ["//visibility:public"],
 )

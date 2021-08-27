@@ -1,5 +1,10 @@
 load(":content_group_test.bzl", "content_group_test_suite")
+load(":site_test.bzl", "site_test_suite")
 
 content_group_test_suite(
     name = "content_group_test",
+)
+
+site_test_suite(
+    name = "site_test",
 )

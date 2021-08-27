@@ -63,7 +63,7 @@ def _test_content_group_provider_contents():
         srcs = ["//zola/internal:test_file.md"],
     )
     content_group_provider_contents_test(
-        name = "__provider_content_absolute_prefix_test",
+        name = "provider_content_absolute_prefix_test",
         target_under_test = "__provider_contents_absolute_prefix",
         expected_zola_path = "content/internal/test_file.md",
     )
@@ -75,7 +75,7 @@ def _test_content_group_provider_contents():
         srcs = ["//zola/internal:test_file.md"],
     )
     content_group_provider_contents_test(
-        name = "__provider_content_relative_prefix_test",
+        name = "provider_content_relative_prefix_test",
         target_under_test = "__provider_contents_relative_prefix",
         expected_zola_path = "content/test_file.md",
     )
@@ -96,7 +96,7 @@ def _test_content_group_provider_contents():
     )
 
     content_group_provider_contents_transitive_test(
-        name = "__provider_content_transitive_test",
+        name = "provider_content_transitive_test",
         target_under_test = "__provider_contents_has_deps",
     )
 
@@ -105,8 +105,8 @@ def content_group_test_suite(name):
     native.test_suite(
         name = name,
         tests = [
-            ":__provider_content_relative_prefix_test",
-            ":__provider_content_absolute_prefix_test",
-            ":__provider_content_transitive_test",
+            ":provider_content_relative_prefix_test",
+            ":provider_content_absolute_prefix_test",
+            ":provider_content_transitive_test",
         ],
     )
