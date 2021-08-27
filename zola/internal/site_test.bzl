@@ -75,7 +75,6 @@ site_build_test = analysistest.make(_site_build_test_impl)
 def _site_build_test_nodeps():
     zola_site(
         name = "__site_build_test_nodeps",
-        tags = ["manual"],
         config = "//zola/internal:test_config.toml",
     )
     site_build_test(

@@ -47,14 +47,22 @@ def _zola_site_impl(ctx):
         "public/index.html",
         "public/robots.txt",
         "public/sitemap.xml",
+        "public/site.css",
+        "public/search_index.en.js",
+        "public/elasticlunr.min.js",
     ]
     outputs = [ctx.actions.declare_file(output) for output in default_outputs]
-    ctx.actions.run(
+    ctx.actions.run_shell(
         outputs = outputs,
         inputs = [init_files.config] + init_files.directories,
-        executable = ctx.executable._zola,
-        arguments = ["--root", init_files.config.dirname, "build"],
-        progress_message = "Building site",
+        tools = [ctx.executable._zola, ctx.executable._touch],
+        command = "{_zola} --root {root} build && {_touch} {outputs}".format(
+            _zola = ctx.executable._zola.path,
+            _touch = ctx.executable._touch.path,
+            root = init_files.config.dirname,
+            outputs = " ".join([output.path for output in outputs]),
+        ),
+        progress_message = "Building site: " + str(ctx.label),
     )
 
     return [DefaultInfo(
@@ -69,7 +77,19 @@ zola_site = rule(
             allow_single_file = [".toml"],
             mandatory = True,
         ),
-        "deps": attr.label_list(
+        "content": attr.label_list(
+            providers = [ZolaContentGroupInfo],
+        ),
+        "sass": attr.label_list(
+            providers = [ZolaContentGroupInfo],
+        ),
+        "static": attr.label_list(
+            providers = [ZolaContentGroupInfo],
+        ),
+        "templates": attr.label_list(
+            providers = [ZolaContentGroupInfo],
+        ),
+        "themes": attr.label_list(
             providers = [ZolaContentGroupInfo],
         ),
         "_zola": attr.label(
@@ -77,6 +97,13 @@ zola_site = rule(
             allow_single_file = True,
             executable = True,
             default = "@rules_zola//zola",
+            cfg = "exec",
+        ),
+        "_touch": attr.label(
+            doc = "The touch executable",
+            allow_single_file = True,
+            executable = True,
+            default = "@rules_zola//tools/touch",
             cfg = "exec",
         ),
     },
