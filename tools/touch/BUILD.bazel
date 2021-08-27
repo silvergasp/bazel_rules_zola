@@ -1,4 +1,5 @@
 cc_binary(
     name = "touch",
     srcs = ["touch.cc"],
+    visibility = ["//visibility:public"],
 )
