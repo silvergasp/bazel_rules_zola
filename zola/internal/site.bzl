@@ -1,6 +1,13 @@
 """ Zola site builder """
 
 load(":content_group.bzl", "ZolaContentGroupInfo")
+load("@bazel_skylib//lib:paths.bzl", "paths")
+
+def _site_path(ctx, path = ""):
+    return paths.join("_site_content", path)
+
+def _generated_html_path(ctx, path = ""):
+    return "/".join([ctx.label.name, path])
 
 def zola_site_init(ctx):
     """ Initialises a Zola site 
@@ -12,54 +19,75 @@ def zola_site_init(ctx):
         depset of files created during init
     """
 
-    directory_paths = [
-        "content",
-        "sass",
-        "static",
-        "templates",
-        "themes",
-    ]
-    directories = [
-        ctx.actions.declare_directory(directory)
-        for directory in directory_paths
-    ]
-    ctx.actions.run(
-        outputs = directories,
-        executable = "mkdir",
-        arguments = directory_paths,
-    )
-    config = ctx.actions.declare_file("config.toml")
+    config = ctx.actions.declare_file(_site_path(ctx, "config.toml"))
     ctx.actions.symlink(
         output = config,
         target_file = ctx.file.config,
     )
-    return struct(directories = directories, config = config)
+    return config
 
 def zola_site_init_impl(ctx):
-    init = zola_site_init(ctx)
-    return DefaultInfo(files = depset(init.directories + [init.config]))
+    return DefaultInfo(files = depset([zola_site_init(ctx)]))
+
+def zola_declare_content(ctx):
+    content = [dep[ZolaContentGroupInfo] for dep in ctx.attr.content]
+
+    file_mapping = depset(transitive = [
+        dep.file_mapping
+        for dep in content
+    ])
+
+    content_files = []
+    for map in file_mapping.to_list():
+        zola_path = _site_path(ctx, "content/" + map.zola_prefix)
+        content_output_file = ctx.actions.declare_file(zola_path)
+        content_files.append(content_output_file)
+        ctx.actions.symlink(
+            output = content_output_file,
+            target_file = map.file,
+        )
+    return content_files
 
 def _zola_site_impl(ctx):
-    init_files = zola_site_init(ctx)
+    config = zola_site_init(ctx)
+    content = zola_declare_content(ctx)
+    root = config.dirname
 
     default_outputs = [
-        "public/404.html",
-        "public/index.html",
-        "public/robots.txt",
-        "public/sitemap.xml",
-        "public/site.css",
-        "public/search_index.en.js",
-        "public/elasticlunr.min.js",
+        # _generated_html_path(ctx),
+        _generated_html_path(ctx, "404.html"),
+        _generated_html_path(ctx, "index.html"),
+        _generated_html_path(ctx, "robots.txt"),
+        _generated_html_path(ctx, "sitemap.xml"),
+        _generated_html_path(ctx, "site.css"),
+        _generated_html_path(ctx, "search_index.en.js"),
+        _generated_html_path(ctx, "elasticlunr.min.js"),
     ]
-    outputs = [ctx.actions.declare_file(output) for output in default_outputs]
+
+    content_outputs = [
+        _generated_html_path(
+            ctx,
+            paths.relativize(content_file.path, root)[len("content/"):]
+                .replace(".md", "/index.html")
+                .replace("_", "-"),
+        )
+        for content_file in content
+    ]
+    outputs = [
+        ctx.actions.declare_file(output)
+        for output in default_outputs + content_outputs
+    ]
     ctx.actions.run_shell(
         outputs = outputs,
-        inputs = [init_files.config] + init_files.directories,
+        inputs = [config] + content,
         tools = [ctx.executable._zola, ctx.executable._touch],
-        command = "{_zola} --root {root} build && {_touch} {outputs}".format(
+        command = """  
+{_zola} --root {root} build -o {output_directory} && \
+{_touch} {outputs}""".format(
             _zola = ctx.executable._zola.path,
             _touch = ctx.executable._touch.path,
-            root = init_files.config.dirname,
+            root = root,
+            output_directory = paths.join(ctx.bin_dir.path, ctx.label.package, ctx.label.name),
             outputs = " ".join([output.path for output in outputs]),
         ),
         progress_message = "Building site: " + str(ctx.label),

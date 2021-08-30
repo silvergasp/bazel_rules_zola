@@ -22,16 +22,6 @@ def map_zola_file(file, zola_prefix):
     """
     if type(zola_prefix) != type(""):
         fail("Zola path should be of type 'str'.")
-    valid_prefixectories = [
-        "content",
-        "sass",
-        "static",
-        "templates",
-        "themes",
-    ]
-    if zola_prefix.split("/")[0] not in valid_prefixectories:
-        fail("Zola path should start with oneof, %s. Got path: %s" %
-             (", ".join(valid_prefixectories), zola_prefix))
     return ZolaFileMapInfo(
         file = file,
         zola_prefix = zola_prefix,

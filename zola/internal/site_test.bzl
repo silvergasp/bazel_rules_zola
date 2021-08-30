@@ -2,6 +2,7 @@
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load(":site.bzl", "zola_site", "zola_site_init_impl")
+load(":content_group.bzl", "zola_content_group")
 
 zola_site_init_internal = rule(
     implementation = zola_site_init_impl,
@@ -24,7 +25,7 @@ def _correct_init_impl(ctx):
     env = analysistest.begin(ctx)
     target_under_test = analysistest.target_under_test(env)
     actions = analysistest.target_actions(env)
-    asserts.equals(env, 2, len(actions))
+    asserts.equals(env, 1, len(actions))
     config_action = actions[-1].outputs.to_list()[0]
     asserts.equals(
         env,
@@ -51,7 +52,7 @@ def _site_build_test_impl(ctx):
     actions = analysistest.target_actions(env)
 
     # Single build action.
-    asserts.equals(env, 3, len(actions))
+    asserts.equals(env, 2, len(actions))
 
     # Minimal default outputs.
     all_outputs = []
@@ -61,10 +62,13 @@ def _site_build_test_impl(ctx):
             for out in action.outputs.to_list()
         ])
     minimal_expected_outputs = [
-        "zola/internal/public/404.html",
-        "zola/internal/public/index.html",
-        "zola/internal/public/robots.txt",
-        "zola/internal/public/sitemap.xml",
+        "zola/internal/__site_build_test_nodeps/" + path
+        for path in [
+            "404.html",
+            "index.html",
+            "robots.txt",
+            "sitemap.xml",
+        ]
     ]
     for output in minimal_expected_outputs:
         asserts.true(env, output in all_outputs)
@@ -72,7 +76,7 @@ def _site_build_test_impl(ctx):
 
 site_build_test = analysistest.make(_site_build_test_impl)
 
-def _site_build_test_nodeps():
+def _site_build_nodeps_test():
     zola_site(
         name = "__site_build_test_nodeps",
         config = "//zola/internal:test_config.toml",
@@ -82,9 +86,53 @@ def _site_build_test_nodeps():
         target_under_test = ":__site_build_test_nodeps",
     )
 
+def _site_build_content_integration_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    target_under_test = analysistest.target_under_test(env)
+    actions = analysistest.target_actions(env)
+    expected_content_outputs = [
+        "zola/internal/__site_build_content_integration_test/zola/internal/test-file/index.html",
+        "zola/internal/__site_build_content_integration_test/transitive/transitive-test-file/index.html",
+    ]
+    all_outputs = []
+    for action in actions:
+        all_outputs.extend([
+            out.short_path
+            for out in action.outputs.to_list()
+        ])
+    for output in expected_content_outputs:
+        asserts.true(env, output in all_outputs)
+
+    return analysistest.end(env)
+
+site_build_content_integration_test = analysistest.make(_site_build_content_integration_test_impl)
+
+def _site_build_content_integration_test():
+    zola_content_group(
+        name = "__site_build_integration_transitive_content",
+        srcs = ["transitive_test_file.md"],
+        strip_prefix = ".",
+        prefix = "transitive",
+    )
+    zola_content_group(
+        name = "__site_build_integration_content",
+        srcs = ["test_file.md"],
+        deps = [":__site_build_integration_transitive_content"],
+    )
+    zola_site(
+        name = "__site_build_content_integration_test",
+        config = "//zola/internal:test_config.toml",
+        content = [":__site_build_integration_content"],
+    )
+    site_build_content_integration_test(
+        name = "site_build_content_integration_test",
+        target_under_test = ":__site_build_content_integration_test",
+    )
+
 def site_test_suite(name):
     _inspect_actions_init_test()
-    _site_build_test_nodeps()
+    _site_build_nodeps_test()
+    _site_build_content_integration_test()
 
     native.test_suite(
         name = name,
