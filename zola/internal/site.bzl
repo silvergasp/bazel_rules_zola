@@ -4,7 +4,7 @@ load(":content_group.bzl", "ZolaContentGroupInfo")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 
 def _site_path(ctx, path = ""):
-    return paths.join("_site_content", path)
+    return paths.join(ctx.label.name + "_site_content", path)
 
 def _generated_html_path(ctx, path = ""):
     return "/".join([ctx.label.name, path])
@@ -29,8 +29,8 @@ def zola_site_init(ctx):
 def zola_site_init_impl(ctx):
     return DefaultInfo(files = depset([zola_site_init(ctx)]))
 
-def zola_declare_content(ctx):
-    content = [dep[ZolaContentGroupInfo] for dep in ctx.attr.content]
+def zola_declare_files(ctx, deps, zola_directory):
+    content = [dep[ZolaContentGroupInfo] for dep in deps]
 
     file_mapping = depset(transitive = [
         dep.file_mapping
@@ -39,7 +39,7 @@ def zola_declare_content(ctx):
 
     content_files = []
     for map in file_mapping.to_list():
-        zola_path = _site_path(ctx, "content/" + map.zola_prefix)
+        zola_path = _site_path(ctx, zola_directory + "/" + map.zola_prefix)
         content_output_file = ctx.actions.declare_file(zola_path)
         content_files.append(content_output_file)
         ctx.actions.symlink(
@@ -48,9 +48,16 @@ def zola_declare_content(ctx):
         )
     return content_files
 
+def zola_declare_content(ctx):
+    return zola_declare_files(ctx, ctx.attr.content, "content")
+
+def zola_declare_themes(ctx):
+    return zola_declare_files(ctx, ctx.attr.themes, "themes")
+
 def _zola_site_impl(ctx):
     config = zola_site_init(ctx)
     content = zola_declare_content(ctx)
+    themes = zola_declare_themes(ctx)
     root = config.dirname
 
     default_outputs = [
@@ -79,7 +86,7 @@ def _zola_site_impl(ctx):
     ]
     ctx.actions.run_shell(
         outputs = outputs,
-        inputs = [config] + content,
+        inputs = [config] + content + themes,
         tools = [ctx.executable._zola, ctx.executable._touch],
         command = """  
 {_zola} --root {root} build -o {output_directory} && \

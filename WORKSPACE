@@ -25,3 +25,12 @@ rules_cc_toolchain_deps()
 load("@rules_cc_toolchain//cc_toolchain:cc_toolchain.bzl", "register_cc_toolchains")
 
 register_cc_toolchains()
+
+load("//zola:themes.bzl", "git_theme")
+
+git_theme(
+    name = "com_github_aaranxu_adidoks",
+    commit = "4ac7b69f35f70a9a7694ab2663c79c67d26f03d1",
+    map_to = "adidoks",
+    remote = "https://github.com/aaranxu/adidoks.git",
+)

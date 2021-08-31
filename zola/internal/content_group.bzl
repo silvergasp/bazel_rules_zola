@@ -47,14 +47,19 @@ def map_zola_content_group(file_mapping):
     return ZolaContentGroupInfo(depset(file_mapping))
 
 def _strip_prefix(file, prefix):
-    if prefix == "":
+    if file.short_path.startswith("../"):
+        new_prefix = "../" + file.owner.workspace_name + "/" + prefix
+    else:
+        new_prefix = prefix
+
+    if new_prefix == "":
         return file.short_path
-    elif prefix.startswith("//"):
-        return paths.relativize("//" + file.short_path, prefix)
+    elif new_prefix.startswith("//"):
+        return paths.relativize("//" + file.short_path, new_prefix)
     else:
         return paths.relativize(
             file.short_path,
-            paths.join(file.owner.package, prefix),
+            paths.join(file.owner.package, new_prefix),
         )
 
 def _zola_content_group_impl(ctx):

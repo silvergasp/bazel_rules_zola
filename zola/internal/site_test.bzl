@@ -129,15 +129,52 @@ def _site_build_content_integration_test():
         target_under_test = ":__site_build_content_integration_test",
     )
 
+def _build_site_theme_integration_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    target_under_test = analysistest.target_under_test(env)
+    actions = analysistest.target_actions(env)
+
+    # Minimal default outputs.
+    all_inputs = []
+    for action in actions:
+        all_inputs.extend([
+            input.short_path
+            for input in action.inputs.to_list()
+        ])
+    minimal_expected_input = [
+        "zola/internal/__site_build_theme_integration_test_site_content/themes/adidoks/config.toml",
+        "zola/internal/__site_build_theme_integration_test_site_content/themes/adidoks/config.toml",
+        "zola/internal/__site_build_theme_integration_test_site_content/themes/adidoks/README.md",
+    ]
+    for input in minimal_expected_input:
+        asserts.true(env, input in all_inputs)
+    return analysistest.end(env)
+
+site_build_theme_integration_test = analysistest.make(_build_site_theme_integration_test_impl)
+
+def _site_build_theme_integration_test():
+    zola_site(
+        name = "__site_build_theme_integration_test",
+        config = "//zola/internal:test_config_adidoks.toml",
+        themes = ["@com_github_aaranxu_adidoks//:theme"],
+    )
+    site_build_theme_integration_test(
+        name = "site_build_theme_integration_test",
+        target_under_test = ":__site_build_theme_integration_test",
+    )
+
 def site_test_suite(name):
     _inspect_actions_init_test()
     _site_build_nodeps_test()
     _site_build_content_integration_test()
+    _site_build_theme_integration_test()
 
     native.test_suite(
         name = name,
         tests = [
             ":site_init",
             ":site_build_nodeps_test",
+            ":site_build_content_integration_test",
+            ":site_build_theme_integration_test",
         ],
     )
