@@ -29,7 +29,7 @@ def zola_site_init(ctx):
 def zola_site_init_impl(ctx):
     return DefaultInfo(files = depset([zola_site_init(ctx)]))
 
-def zola_declare_files(ctx, deps, zola_directory):
+def zola_declare_files(ctx, deps, zola_directory = ""):
     content = [dep[ZolaContentGroupInfo] for dep in deps]
 
     file_mapping = depset(transitive = [
@@ -39,7 +39,15 @@ def zola_declare_files(ctx, deps, zola_directory):
 
     content_files = []
     for map in file_mapping.to_list():
-        zola_path = _site_path(ctx, zola_directory + "/" + map.zola_prefix)
+        if not zola_directory:
+            normalised_zola_directory = ""
+        else:
+            normalised_zola_directory = zola_directory + "/"
+
+        zola_path = _site_path(
+            ctx,
+            normalised_zola_directory + map.zola_prefix,
+        )
         content_output_file = ctx.actions.declare_file(zola_path)
         content_files.append(content_output_file)
         ctx.actions.symlink(
@@ -54,10 +62,14 @@ def zola_declare_content(ctx):
 def zola_declare_themes(ctx):
     return zola_declare_files(ctx, ctx.attr.themes, "themes")
 
+def zola_declare_static(ctx):
+    return zola_declare_files(ctx, ctx.attr.static, "static")
+
 def _zola_site_impl(ctx):
     config = zola_site_init(ctx)
     content = zola_declare_content(ctx)
     themes = zola_declare_themes(ctx)
+    static = zola_declare_static(ctx)
     root = config.dirname
 
     default_outputs = [
@@ -80,9 +92,34 @@ def _zola_site_impl(ctx):
         )
         for content_file in content
     ]
+    static_outputs = [
+        _generated_html_path(
+            ctx,
+            paths.relativize(static_file.path, root)[len("static/"):],
+        )
+        for static_file in static
+    ]
+    theme_static_inputs = [
+        file
+        for file in themes
+        if "/static/" in file.short_path
+    ]
+    theme_static_outputs = [
+        _generated_html_path(
+            ctx,
+            paths.relativize(static_file.path, root),
+        )[len(ctx.attr.name +
+              "/themes/" +
+              ctx.attr.theme +
+              "/static/"):]
+        for static_file in theme_static_inputs
+    ]
     outputs = [
         ctx.actions.declare_file(output)
-        for output in default_outputs + content_outputs
+        for output in default_outputs +
+                      content_outputs +
+                      theme_static_outputs +
+                      static_outputs
     ]
     ctx.actions.run_shell(
         outputs = outputs,
@@ -113,19 +150,28 @@ zola_site = rule(
             mandatory = True,
         ),
         "content": attr.label_list(
+            doc = "List of zola_content_groups.",
             providers = [ZolaContentGroupInfo],
         ),
         "sass": attr.label_list(
+            doc = "WARNING: Unimplemented",
             providers = [ZolaContentGroupInfo],
         ),
         "static": attr.label_list(
+            doc = "Static content.",
             providers = [ZolaContentGroupInfo],
         ),
         "templates": attr.label_list(
+            doc = "WARNING: Unimplemented",
             providers = [ZolaContentGroupInfo],
         ),
         "themes": attr.label_list(
+            doc = "A list of themes to add to this site. This is useful for \
+themes that inherit from others. This should be used with the 'theme' attribute.",
             providers = [ZolaContentGroupInfo],
+        ),
+        "theme": attr.string(
+            doc = "The theme that is specified in the config.toml.",
         ),
         "_zola": attr.label(
             doc = "The zola executable",

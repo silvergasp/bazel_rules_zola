@@ -157,6 +157,7 @@ def _site_build_theme_integration_test():
         name = "__site_build_theme_integration_test",
         config = "//zola/internal:test_config_adidoks.toml",
         themes = ["@com_github_aaranxu_adidoks//:theme"],
+        theme = "adidoks",
     )
     site_build_theme_integration_test(
         name = "site_build_theme_integration_test",
