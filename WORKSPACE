@@ -30,7 +30,17 @@ load("//zola:themes.bzl", "git_theme")
 
 git_theme(
     name = "com_github_aaranxu_adidoks",
-    commit = "4ac7b69f35f70a9a7694ab2663c79c67d26f03d1",
+    commit = "871a47d59ecb62e7c900111f04e155a5ddd3cb33",
     map_to = "adidoks",
     remote = "https://github.com/aaranxu/adidoks.git",
 )
+
+git_repository(
+    name = "io_bazel_stardoc",
+    remote = "https://github.com/bazelbuild/stardoc.git",
+    tag = "0.4.0",
+)
+
+load("@io_bazel_stardoc//:setup.bzl", "stardoc_repositories")
+
+stardoc_repositories()

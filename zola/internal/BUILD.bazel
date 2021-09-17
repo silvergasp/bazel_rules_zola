@@ -8,3 +8,12 @@ content_group_test_suite(
 site_test_suite(
     name = "site_test",
 )
+
+filegroup(
+    name = "bazel",
+    srcs = glob(
+        ["*.bzl"],
+        exclude = ["*_test.bzl"],
+    ),
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,8 @@
+load("//zola:defs.bzl", "zola_content_group")
+
+zola_content_group(
+    name = "templates",
+    srcs = glob(["**/*.html"]),
+    strip_prefix = ".",
+    visibility = ["//visibility:public"],
+)

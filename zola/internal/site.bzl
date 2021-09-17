@@ -78,12 +78,16 @@ def zola_declare_static(ctx):
 def zola_declare_sass(ctx):
     return zola_declare_files(ctx, ctx.attr.sass, "sass")
 
+def zola_declare_templates(ctx):
+    return zola_declare_files(ctx, ctx.attr.templates, "templates")
+
 def _zola_site_impl(ctx):
     config = zola_site_init(ctx)
     content = zola_declare_content(ctx)
     themes = zola_declare_themes(ctx)
     static = zola_declare_static(ctx)
     sass = zola_declare_sass(ctx)
+    templates = zola_declare_templates(ctx)
     root = config.dirname
 
     default_outputs = [
@@ -105,6 +109,7 @@ def _zola_site_impl(ctx):
                 .replace("_", "-"),
         )
         for content_file in content
+        if content_file.basename != "_index.md"
     ]
     static_outputs = [
         _generated_html_path(
@@ -163,7 +168,7 @@ def _zola_site_impl(ctx):
     ]
     ctx.actions.run_shell(
         outputs = outputs,
-        inputs = [config] + content + themes + static + sass,
+        inputs = [config] + content + themes + static + sass + templates,
         tools = [ctx.executable._zola, ctx.executable._touch],
         command = """  
 {_zola} --root {root} build -o {output_directory} && \
@@ -202,7 +207,7 @@ zola_site = rule(
             providers = [ZolaContentGroupInfo],
         ),
         "templates": attr.label_list(
-            doc = "WARNING: Unimplemented",
+            doc = "Site templates.",
             providers = [ZolaContentGroupInfo],
         ),
         "themes": attr.label_list(

@@ -31,3 +31,14 @@ alias(
     }),
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "bazel",
+    srcs = [
+        "defs.bzl",
+        "//zola/internal:bazel",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["defs.bzl"])
