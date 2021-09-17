@@ -1,0 +1,8 @@
+load("//zola:defs.bzl", "zola_site")
+
+zola_site(
+    name = "site",
+    config = "config.toml",
+    theme = "adidoks",
+    themes = ["@com_github_aaranxu_adidoks//:theme"],
+)
