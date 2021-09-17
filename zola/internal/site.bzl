@@ -30,6 +30,16 @@ def zola_site_init_impl(ctx):
     return DefaultInfo(files = depset([zola_site_init(ctx)]))
 
 def zola_declare_files(ctx, deps, zola_directory = ""):
+    """ Declares files for a Zola site 
+
+    Args:
+        ctx: Rule context.
+        deps: Dependencies to declare.
+        zola_directory: Directory to declare files in.
+
+    Returns:
+        List of declared input files.
+    """
     content = [dep[ZolaContentGroupInfo] for dep in deps]
 
     file_mapping = depset(transitive = [
@@ -65,11 +75,15 @@ def zola_declare_themes(ctx):
 def zola_declare_static(ctx):
     return zola_declare_files(ctx, ctx.attr.static, "static")
 
+def zola_declare_sass(ctx):
+    return zola_declare_files(ctx, ctx.attr.sass, "sass")
+
 def _zola_site_impl(ctx):
     config = zola_site_init(ctx)
     content = zola_declare_content(ctx)
     themes = zola_declare_themes(ctx)
     static = zola_declare_static(ctx)
+    sass = zola_declare_sass(ctx)
     root = config.dirname
 
     default_outputs = [
@@ -78,7 +92,7 @@ def _zola_site_impl(ctx):
         _generated_html_path(ctx, "index.html"),
         _generated_html_path(ctx, "robots.txt"),
         _generated_html_path(ctx, "sitemap.xml"),
-        _generated_html_path(ctx, "site.css"),
+        _generated_html_path(ctx, "main.css"),
         _generated_html_path(ctx, "search_index.en.js"),
         _generated_html_path(ctx, "elasticlunr.min.js"),
     ]
@@ -102,28 +116,54 @@ def _zola_site_impl(ctx):
     theme_static_inputs = [
         file
         for file in themes
-        if "/static/" in file.short_path
+        if ctx.attr.theme + "/static/" in file.short_path
     ]
     theme_static_outputs = [
         _generated_html_path(
             ctx,
             paths.relativize(static_file.path, root),
-        )[len(ctx.attr.name +
-              "/themes/" +
-              ctx.attr.theme +
-              "/static/"):]
+        ).replace(
+            "themes/" + ctx.attr.theme + "/static",
+            "",
+        )
         for static_file in theme_static_inputs
+    ]
+    css_outputs = [
+        _generated_html_path(
+            ctx,
+            paths.relativize(sass_file.path, root),
+        )
+        for sass_file in sass
+    ]
+    theme_css_inputs = [
+        file
+        for file in themes
+        if ctx.attr.theme + "/sass/" in file.short_path and
+           file.basename.endswith(".scss") and
+           not file.basename.startswith("_")
+    ]
+    theme_css_outputs = [
+        _generated_html_path(
+            ctx,
+            paths.relativize(css_file.path, root),
+        ).replace(
+            "themes/" + ctx.attr.theme + "/sass/",
+            "",
+        ).replace(".scss", ".css")
+        for css_file in theme_css_inputs
     ]
     outputs = [
         ctx.actions.declare_file(output)
         for output in default_outputs +
                       content_outputs +
                       theme_static_outputs +
-                      static_outputs
+                      static_outputs +
+                      theme_css_outputs +
+                      css_outputs
     ]
     ctx.actions.run_shell(
         outputs = outputs,
-        inputs = [config] + content + themes,
+        inputs = [config] + content + themes + static + sass,
         tools = [ctx.executable._zola, ctx.executable._touch],
         command = """  
 {_zola} --root {root} build -o {output_directory} && \
@@ -154,7 +194,7 @@ zola_site = rule(
             providers = [ZolaContentGroupInfo],
         ),
         "sass": attr.label_list(
-            doc = "WARNING: Unimplemented",
+            doc = "Site sass style sheets.",
             providers = [ZolaContentGroupInfo],
         ),
         "static": attr.label_list(
