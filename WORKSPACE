@@ -38,7 +38,7 @@ git_theme(
 git_repository(
     name = "io_bazel_stardoc",
     remote = "https://github.com/bazelbuild/stardoc.git",
-    tag = "0.5.1",
+    tag = "0.5.3",
 )
 
 load("@io_bazel_stardoc//:setup.bzl", "stardoc_repositories")
