@@ -14,9 +14,9 @@ def zola_deps():
     if "zola-v0-14-1-x86_64-apple-darwin" not in native.existing_rules():
         http_archive(
             name = "zola-v0-14-1-x86_64-apple-darwin",
-            url = "https://github.com/getzola/zola/releases/download/v0.14.1/zola-v0.14.1-x86_64-apple-darwin.tar.gz",
+            url = "https://github.com/getzola/zola/releases/download/v0.18.0/zola-v0.18.0-x86_64-apple-darwin.tar.gz",
             build_file = "@rules_zola//third_party:zola-v0-14-1-x86_64-apple-darwin.BUILD",
-            sha256 = "754d5e1b4ca67a13c6cb4741dbff5b248075f4f4a0353d6673aa4f5afb7ec0bf",
+            sha256 = "19833c38ce455cb97a9b2dce1dd882af973553e66f722e9a599e1ca152e412ba",
         )
     if "zola-v0-14-1-x86_64-pc-windows-msvc" not in native.existing_rules():
         http_archive(
